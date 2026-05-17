@@ -1,98 +1,127 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { AddHabitModal } from '@/components/AddHabitModal';
+import { HabitCard } from '@/components/HabitCard';
+import { HabitGreeting } from '@/components/HabitGreeting';
+import ProfileHeader from '@/components/ProfileHeader';
+import { Screen } from '@/components/Screen';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Priority = 'low' | 'mid' | 'high';
+
+type Habit = {
+	id: string;
+	title: string;
+	streak: number;
+	isCompleted: boolean;
+	priority: Priority;
+};
+
+const INITIAL_HABITS: Habit[] = [
+	{
+		id: 'h1',
+		title: 'Morning Run',
+		streak: 0,
+		isCompleted: true,
+		priority: 'mid',
+	},
+	{
+		id: 'h2',
+		title: 'Read a Book',
+		streak: 3,
+		isCompleted: false,
+		priority: 'low',
+	},
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+	const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
+	const [addModalVisible, setAddModalVisible] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+	const toggle = useCallback((id: string) => {
+		setHabits((prev) =>
+			prev.map((habit) => {
+				if (habit.id !== id) return habit;
+				const completing = !habit.isCompleted;
+				return {
+					...habit,
+					isCompleted: completing,
+					streak: completing ? habit.streak + 1 : Math.max(habit.streak - 1, 0),
+				};
+			})
+		);
+	}, []);
+
+	const addHabit = useCallback((title: string, priority: Priority) => {
+		const newHabit: Habit = {
+			id: 'h' + Date.now(),
+			title,
+			streak: 0,
+			isCompleted: false,
+			priority,
+		};
+		setHabits((prev) => [...prev, newHabit]);
+	}, []);
+
+	const completedItems = useMemo(
+		() => habits.filter((h) => h.isCompleted).length,
+		[habits]
+	);
+
+	const openHabit = (id: string) => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		toggle(id);
+	};
+
+	return (
+		<Screen>
+			<ProfileHeader name='Lester' role='Software Engineer' />
+			<HabitGreeting userName='Lester' />
+
+			<TouchableOpacity
+				style={styles.addButton}
+				activeOpacity={0.6}
+				onPress={() => setAddModalVisible(true)}
+			>
+				<Ionicons name='add' size={24} color='#64748B' />
+			</TouchableOpacity>
+
+			<AddHabitModal
+				visible={addModalVisible}
+				onClose={() => setAddModalVisible(false)}
+				onAdd={addHabit}
+			/>
+
+			<FlatList
+				data={habits}
+				keyExtractor={(item) => item.id}
+				showsVerticalScrollIndicator={false}
+				renderItem={({ item }) => (
+					<HabitCard
+						title={item.title}
+						streak={item.streak}
+						isCompleted={item.isCompleted}
+						priority={item.priority}
+						onToggle={() => openHabit(item.id)}
+					/>
+				)}
+			/>
+		</Screen>
+	);
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+	addButton: {
+		width: '100%',
+		height: 56,
+		borderWidth: 1.5,
+		borderStyle: 'dashed',
+		borderColor: '#94A3B8',
+		borderRadius: 16,
+		alignItems: 'center',
+		justifyContent: 'center',
+		opacity: 0.6,
+		marginTop: 8,
+	},
 });
