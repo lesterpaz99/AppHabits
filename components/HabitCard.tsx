@@ -1,16 +1,12 @@
 import { useThemeColor } from '@/hooks/use-theme-color';
+import type { HabitCardProps, HabitPriority } from '@/types/Habit';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ThemedText } from './themed-text';
 
-type Props = {
-	title: string;
-	streak: number;
-	isCompleted?: boolean;
-	priority?: 'low' | 'mid' | 'high';
-	onToggle?: () => void;
-};
-
-const priorityColors = {
+const priorityColors: Record<
+	HabitPriority,
+	{ backgroundColor: string; color: string }
+> = {
 	low: {
 		backgroundColor: '#D1FAE5',
 		color: '#10B981',
@@ -31,7 +27,7 @@ export function HabitCard({
 	isCompleted = false,
 	priority = 'low',
 	onToggle,
-}: Props) {
+}: HabitCardProps) {
 	const p = priorityColors[priority];
 	const surface = useThemeColor({}, 'surface');
 	const success = useThemeColor({}, 'success');

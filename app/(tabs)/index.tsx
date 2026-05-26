@@ -1,78 +1,53 @@
 import { AddHabitModal } from '@/components/AddHabitModal';
+import { EmptyHabits } from '@/components/EmptyHabits';
 import { HabitCard } from '@/components/HabitCard';
 import { HabitGreeting } from '@/components/HabitGreeting';
 import ProfileHeader from '@/components/ProfileHeader';
 import { Screen } from '@/components/Screen';
+import { useHabits } from '@/context/HabitContext';
+import type { Habit } from '@/types/Habit';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-
-type Priority = 'low' | 'mid' | 'high';
-
-type Habit = {
-	id: string;
-	title: string;
-	streak: number;
-	isCompleted: boolean;
-	priority: Priority;
-};
-
-const INITIAL_HABITS: Habit[] = [
-	{
-		id: 'h1',
-		title: 'Morning Run',
-		streak: 0,
-		isCompleted: true,
-		priority: 'mid',
-	},
-	{
-		id: 'h2',
-		title: 'Read a Book',
-		streak: 3,
-		isCompleted: false,
-		priority: 'low',
-	},
-];
+import { useCallback, useState } from 'react';
+import {
+	FlatList,
+	ListRenderItemInfo,
+	StyleSheet,
+	TouchableOpacity,
+} from 'react-native';
 
 export default function HomeScreen() {
-	const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
+	const {
+		state: { habits, loading },
+		addHabit,
+		toggleHabit,
+	} = useHabits();
 	const [addModalVisible, setAddModalVisible] = useState(false);
 
-	const toggle = useCallback((id: string) => {
-		setHabits((prev) =>
-			prev.map((habit) => {
-				if (habit.id !== id) return habit;
-				const completing = !habit.isCompleted;
-				return {
-					...habit,
-					isCompleted: completing,
-					streak: completing ? habit.streak + 1 : Math.max(habit.streak - 1, 0),
-				};
-			})
-		);
-	}, []);
+	const keyExtractor = useCallback((item: Habit) => item.id, []);
 
-	const addHabit = useCallback((title: string, priority: Priority) => {
-		const newHabit: Habit = {
-			id: 'h' + Date.now(),
-			title,
-			streak: 0,
-			isCompleted: false,
-			priority,
-		};
-		setHabits((prev) => [...prev, newHabit]);
-	}, []);
-
-	const completedItems = useMemo(
-		() => habits.filter((h) => h.isCompleted).length,
-		[habits]
+	const openHabit = useCallback(
+		(id: string) => {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			toggleHabit(id);
+		},
+		[toggleHabit]
 	);
 
-	const openHabit = (id: string) => {
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		toggle(id);
-	};
+	const renderItem = useCallback(
+		({ item }: ListRenderItemInfo<Habit>) => (
+			<HabitCard
+				title={item.title}
+				streak={item.streak}
+				isCompleted={item.isCompleted}
+				priority={item.priority}
+				onToggle={() => openHabit(item.id)}
+			/>
+		),
+		[openHabit]
+	);
+
+	if (loading) return null;
 
 	return (
 		<Screen>
@@ -95,17 +70,10 @@ export default function HomeScreen() {
 
 			<FlatList
 				data={habits}
-				keyExtractor={(item) => item.id}
+				keyExtractor={keyExtractor}
 				showsVerticalScrollIndicator={false}
-				renderItem={({ item }) => (
-					<HabitCard
-						title={item.title}
-						streak={item.streak}
-						isCompleted={item.isCompleted}
-						priority={item.priority}
-						onToggle={() => openHabit(item.id)}
-					/>
-				)}
+				ListEmptyComponent={EmptyHabits}
+				renderItem={renderItem}
 			/>
 		</Screen>
 	);

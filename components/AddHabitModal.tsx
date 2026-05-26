@@ -1,3 +1,8 @@
+import {
+	HABIT_PRIORITIES,
+	type AddHabitHandler,
+	type HabitPriority,
+} from '@/types/Habit';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
@@ -19,16 +24,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Priority = 'low' | 'mid' | 'high';
-
 type Props = {
 	visible: boolean;
 	onClose: () => void;
-	onAdd: (title: string, priority: Priority) => void;
+	onAdd: AddHabitHandler;
 };
 
 const priorityColors: Record<
-	Priority,
+	HabitPriority,
 	{ backgroundColor: string; color: string }
 > = {
 	low: { backgroundColor: '#D1FAE5', color: '#10B981' },
@@ -36,13 +39,11 @@ const priorityColors: Record<
 	high: { backgroundColor: '#EF4444', color: '#FFFFFF' },
 };
 
-const PRIORITIES: Priority[] = ['low', 'mid', 'high'];
-
 const DISMISS_THRESHOLD = 150;
 
 export function AddHabitModal({ visible, onClose, onAdd }: Props) {
 	const [title, setTitle] = useState('');
-	const [priority, setPriority] = useState<Priority>('low');
+	const [priority, setPriority] = useState<HabitPriority>('low');
 	const [showError, setShowError] = useState(false);
 
 	const insets = useSafeAreaInsets();
@@ -137,7 +138,7 @@ export function AddHabitModal({ visible, onClose, onAdd }: Props) {
 						/>
 
 						<View style={styles.priorityRow}>
-							{PRIORITIES.map((p) => {
+							{HABIT_PRIORITIES.map((p) => {
 								const isSelected = priority === p;
 								const colors = priorityColors[p];
 								return (
