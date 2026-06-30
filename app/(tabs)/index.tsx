@@ -4,8 +4,10 @@ import { HabitCard } from '@/components/HabitCard';
 import { HabitGreeting } from '@/components/HabitGreeting';
 import ProfileHeader from '@/components/ProfileHeader';
 import { Screen } from '@/components/Screen';
+import { useCelebration } from '@/context/CelebrationProvider';
 import { useHabits } from '@/context/HabitContext';
 import type { Habit } from '@/types/Habit';
+import { isSameDay } from '@/utils/date';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useState } from 'react';
@@ -22,6 +24,7 @@ export default function HomeScreen() {
 		addHabit,
 		toggleHabit,
 	} = useHabits();
+	const { celebrate } = useCelebration();
 	const [addModalVisible, setAddModalVisible] = useState(false);
 
 	const keyExtractor = useCallback((item: Habit) => item.id, []);
@@ -30,22 +33,38 @@ export default function HomeScreen() {
 		(id: string) => {
 			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			toggleHabit(id);
+			// celebrate('Great job on completing your habit!');
 		},
 		[toggleHabit]
 	);
 
-	const renderItem = useCallback(
-		({ item }: ListRenderItemInfo<Habit>) => (
+	const onToggleWithCelebration = (item: Habit) => {
+		const wasToday = item.lastDoneAt
+			? isSameDay(new Date(item.lastDoneAt), new Date())
+			: false;
+
+		toggleHabit(item.id);
+
+		if (!item.isCompleted && !wasToday) {
+			celebrate('Great job on completing your habit!');
+		}
+	};
+
+	const renderItem = ({ item }: ListRenderItemInfo<Habit>) => {
+		const isToday = item.lastDoneAt
+			? isSameDay(new Date(item.lastDoneAt), new Date())
+			: false;
+
+		return (
 			<HabitCard
 				title={item.title}
 				streak={item.streak}
-				isCompleted={item.isCompleted}
+				isCompleted={isToday}
 				priority={item.priority}
-				onToggle={() => openHabit(item.id)}
+				onToggle={() => onToggleWithCelebration(item)}
 			/>
-		),
-		[openHabit]
-	);
+		);
+	};
 
 	if (loading) return null;
 
